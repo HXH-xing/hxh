@@ -1,0 +1,58 @@
+%% tool.py 代码架构图（Mermaid）
+%% 运行流程：用户输入 -> 调用大模型(携带工具定义) -> 若模型请求工具则本地执行 -> 结果回传模型 -> 输出回答
+
+flowchart TD
+    subgraph ENTRY["入口"]
+        MAIN["main() 交互循环<br/>输入 exit 退出"]
+        CFG["读取 config.ini<br/>model / api_base / api_key / max_tokens"]
+    end
+
+    subgraph LOOP["Function Calling 循环"]
+        MSG["messages 对话历史"]
+        REQ["requests.post /chat/completions<br/>携带 TOOLS 工具定义"]
+        CHK{"message 是否含 tool_calls ?"}
+        ANS["打印 AI 回答"]
+        EXEC["execute_tool(name, arguments)<br/>json.loads 解析参数"]
+    end
+
+    subgraph TOOLS["TOOLS 工具集"]
+        direction TB
+        subgraph BASIC["基础工具"]
+            B1["getdate"]
+            B2["isLeapYear"]
+        end
+        subgraph FS["本地文件 / 目录操作"]
+            F1["get_current_directory"]
+            F2["list_directory"]
+            F3["get_file_type"]
+            F4["read_file"]
+            F5["create_file"]
+            F6["edit_file"]
+            F7["create_directory"]
+            F8["delete_directory"]
+            F9["delete_file"]
+            F10["rename_path"]
+        end
+    end
+
+    subgraph HELP["辅助函数"]
+        H1["run_date_command()"]
+        H2["is_leap_year()"]
+        H3["is_plain_text()"]
+    end
+
+    MAIN --> CFG
+    CFG --> MSG
+    MAIN --> MSG
+    MSG --> REQ
+    REQ --> CHK
+    CHK -- 否 --> ANS
+    ANS --> MAIN
+    CHK -- 是 --> EXEC
+    EXEC --> TOOLS
+    TOOLS -- 工具结果写入 messages --> REQ
+    B1 --> H1
+    B2 --> H2
+    F3 --> H3
+    F4 --> H3
+    F6 --> H3
